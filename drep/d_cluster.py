@@ -1071,6 +1071,9 @@ def thread_nucmer_cmds_status(cmds,t=10,verbose=True):
     if verbose:
         minutes = ((float(total) * (float(0.33))) /float(t))
         logging.info("Running {0} mummer comparisons: should take ~ {1:.1f} min".format(total,minutes))
+    logging.debug("Commands are:")
+    for cmd in cmds:
+        logging.debug(' '.join(cmd))
     pool = multiprocessing.Pool(processes=int(t))
     rs = pool.map_async(run_nucmer_cmd,cmds)
     pool.close()
