@@ -313,6 +313,12 @@ def parse_arguments(workDirectory, **kwargs):
             .format('mash'))
     kwargs['mash_exe'] = loc
 
+    loc = shutil.which('nucmer')
+    if loc == None:
+        logging.error('Cannot locate the program {0}- make sure its in the system path'\
+            .format('nucmer'))
+    kwargs['nucmer_exe'] = loc
+
     # If genomes are provided, load them
     if kwargs.get('genomes',None) != None:
         assert workDirectory.hasDb("Bdb") == False, \
@@ -734,6 +740,9 @@ def process_deltadir(deltafiles, org_lengths, logger=None):
     # org1_vs_org2.delta
     zero_error = False  # flag to register a divide-by-zero error
     for deltafile in deltafiles:
+        if not os.path.exists(deltafile):
+            logging.error('{0} doesnt exist: nucmer failed! Quitting the program')
+            sys.exit()
         qname, sname = os.path.splitext(os.path.split(deltafile)[-1])[0].split('_vs_')
         tot_length, tot_sim_error = parse_delta(deltafile)
         if tot_length == 0 and logger is not None:
@@ -890,6 +899,7 @@ def compare_genomes(bdb, algorithm, data_folder, **kwargs):
 
 def run_pairwise_ANIn(genome_list, ANIn_folder, **kwargs):
     p = kwargs.get('processors',6)
+    nucmer_exe = kwargs.get('nucmer_exe', '')
     genomes = genome_list
 
     # Make folder
@@ -908,7 +918,7 @@ def run_pairwise_ANIn(genome_list, ANIn_folder, **kwargs):
 
             # If the file doesn't already exist, add it to what needs to be run
             if not os.path.isfile(file_name + '.delta'):
-                cmds.append(gen_nucmer_cmd(file_name,g1,g2))
+                cmds.append(gen_nucmer_cmd(file_name,g1,g2,nucmer_exe=nucmer_exe))
 
     # Run commands
     if len(cmds) > 0:
@@ -1053,8 +1063,9 @@ def parse_gani_file(file):
     dict['querry'] = dict['querry'][:-4]
     return dict
 
-def gen_nucmer_cmd(prefix,ref,querry,c='65',noextend=False,maxgap='90',method='mum'):
-    cmd = ['nucmer','--' + method,'-p',prefix,'-c',str(c),'-g',str(maxgap)]
+def gen_nucmer_cmd(prefix,ref,querry,c='65',noextend=False,maxgap='90',method='mum', \
+        nucmer_exe='nucmer'):
+    cmd = [nucmer_exe,'--' + method,'-p',prefix,'-c',str(c),'-g',str(maxgap)]
     if noextend: cmd.append('--noextend')
     cmd += [ref,querry]
     return cmd
